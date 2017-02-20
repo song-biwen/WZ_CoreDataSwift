@@ -12,7 +12,8 @@ import CoreData;
 class BowtieViewController: UIViewController {
 
     var managedObjectContext:NSManagedObjectContext!;
-    
+    //当前的领带
+    var currentBowtie = BowTie();
     
     @IBOutlet weak var segmentedControl: UISegmentedControl!
     
@@ -35,6 +36,7 @@ class BowtieViewController: UIViewController {
         savaData();
         
         updateUI(sender: self.segmentedControl.titleForSegment(at: 0)!);
+        
     }
 
     
@@ -46,7 +48,42 @@ class BowtieViewController: UIViewController {
     @IBAction func wearButtonAction(_ sender: UIButton) {
     }
     
+    //评分
     @IBAction func rateButtonAction(_ sender: UIButton) {
+        let alertController = UIAlertController(title: "新评分", message: "请输入评分", preferredStyle: UIAlertControllerStyle.alert);
+        let cancelAction = UIAlertAction(title: "取消", style: UIAlertActionStyle.cancel, handler: nil);
+        let saveAction = UIAlertAction(title: "保存", style: UIAlertActionStyle.default) { (action) in
+            let textField:UITextField = alertController.textFields![0];
+            if let valueForTextField = Int(textField.text!) {
+                if valueForTextField <= 5 && valueForTextField >= 0 {
+                    self.currentBowtie.rating = Int16(valueForTextField);
+                    self.scoreLabel.text = "当前评分：\(self.currentBowtie.rating)/5";
+                    
+                    do {
+                        try self.managedObjectContext.save();
+                    }catch let error as NSError {
+                        print("failed for \(error),\(error.userInfo)")
+                    }
+
+                    
+                }else {
+                    print("输入数据只能不大于5，不小于0");
+                }
+            }else {
+                print("输入数据类型不为数字");
+            }
+        }
+        
+        alertController.addAction(cancelAction);
+        alertController.addAction(saveAction);
+        alertController.addTextField { (textField) in
+            textField.placeholder = "请输入您的评分";
+            //设置textField的输入类型为数字
+            textField.keyboardType = UIKeyboardType.numberPad;
+        }
+        
+        self.present(alertController, animated: true, completion: nil);
+        
     }
     
    
@@ -113,6 +150,9 @@ class BowtieViewController: UIViewController {
             let result = try managedObjectContext.fetch(fetchRequest) as! [BowTie];
             if result.count > 0 {
                 let bowtie = result[0];
+                
+                currentBowtie = bowtie;
+                
                 self.bowtieImageView.image = UIImage(data:bowtie.photoData! as Data);
                 self.nameLabel.text = bowtie.name!;
                 self.scoreLabel.text = "当前评分：\(bowtie.rating)/5";
